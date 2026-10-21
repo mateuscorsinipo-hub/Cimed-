@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import {
   ArrowRight, BarChart3, BrainCircuit, Cpu, Crosshair, FileUp, FlaskConical, GitCompareArrows, HelpCircle, Map, Menu,
   MousePointerClick, Repeat, Route, ShieldCheck, Video, X,
@@ -27,7 +27,7 @@ export function SiteHeader() {
     window.addEventListener('scroll', on, { passive: true });
     return () => window.removeEventListener('scroll', on);
   }, []);
-  const onHome = typeof window !== 'undefined' && window.location.pathname === '/';
+  const onHome = useLocation().pathname === '/';
   const href = (h: string) => (onHome ? h : `/${h}`);
   return (
     <header className={cn('sticky top-0 z-40 border-b transition-colors', scrolled || open ? 'border-ink-700 bg-ink-900/90 backdrop-blur' : 'border-transparent')}>

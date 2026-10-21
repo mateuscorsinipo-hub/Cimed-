@@ -15,9 +15,9 @@ export function Footer() {
           <div className="label mb-3">Produto</div>
           <ul className="space-y-2 text-sm text-fg-muted">
             <li><Link to="/app" className="hover:text-fg">Plataforma</Link></li>
-            <li><a href="/#funcionalidades" className="hover:text-fg">Funcionalidades</a></li>
-            <li><a href="/#como-funciona" className="hover:text-fg">Como funciona</a></li>
-            <li><a href="/#faq" className="hover:text-fg">FAQ</a></li>
+            <li><Link to={{ pathname: '/', hash: '#funcionalidades' }} className="hover:text-fg">Funcionalidades</Link></li>
+            <li><Link to={{ pathname: '/', hash: '#como-funciona' }} className="hover:text-fg">Como funciona</Link></li>
+            <li><Link to={{ pathname: '/', hash: '#faq' }} className="hover:text-fg">FAQ</Link></li>
           </ul>
         </nav>
         <nav aria-label="Legal">
