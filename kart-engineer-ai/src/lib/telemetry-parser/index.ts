@@ -60,6 +60,22 @@ export async function readTextFile(file: Blob): Promise<string> {
   }
 }
 
+/**
+ * Identifica arquivos que não são texto pelo cabeçalho binário, para explicar
+ * o que fazer em vez de apenas recusar. Retorna null quando parece texto.
+ */
+export async function sniffBinary(file: Blob): Promise<string | null> {
+  const b = new Uint8Array(await file.slice(0, 8).arrayBuffer());
+  if (b[0] === 0x50 && b[1] === 0x4b && b[2] === 0x03 && b[3] === 0x04) {
+    return 'Este arquivo é uma planilha do Excel (.xlsx) ou um arquivo compactado, não um CSV. No Excel, use Arquivo → Salvar como → "CSV (separado por vírgulas)" e envie o arquivo gerado. Se for .zip, extraia antes.';
+  }
+  if (b[0] === 0xd0 && b[1] === 0xcf && b[2] === 0x11 && b[3] === 0xe0) {
+    return 'Este arquivo é uma planilha do Excel antigo (.xls), não um CSV. No Excel, use Salvar como → "CSV (separado por vírgulas)".';
+  }
+  if (b[0] === 0x25 && b[1] === 0x50 && b[2] === 0x44 && b[3] === 0x46) return 'Este arquivo é um PDF. Exporte os dados do seu equipamento em CSV ou GPX.';
+  return null;
+}
+
 export const MAX_FILE_BYTES = 150 * 1024 * 1024;
 
 export function detectFormat(fileName: string, head: string): FormatParser {
@@ -67,6 +83,7 @@ export function detectFormat(fileName: string, head: string): FormatParser {
   const byExt = FORMATS.find((f) => f.extensions.includes(ext));
   if (byExt) return byExt;
   if (/<gpx[\s>]/i.test(head)) return FORMATS[1];
-  if (/[,;\t]/.test(head)) return FORMATS[0];
-  throw new ParseError(`Formato ".${ext}" não suportado. Use ${FORMATS.map((f) => f.extensions.join('/')).join(' ou ')}.`);
+  // Extensão desconhecida (ou ausente): decide pelo conteúdo.
+  if (/[,;\t|]/.test(head)) return FORMATS[0];
+  throw new ParseError(`Não foi possível reconhecer o conteúdo de "${fileName}" como CSV ou GPX: não há colunas separadas por vírgula, ponto e vírgula ou tabulação.`);
 }

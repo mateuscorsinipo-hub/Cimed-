@@ -6,7 +6,7 @@ import { LapDetectionPanel, LapsTable } from '@/components/app/LapDetectionPanel
 import { TrackMap } from '@/components/charts/TrackMap';
 import { cn, Field, KindTag, Notice, Panel, Spinner, useUi } from '@/components/ui';
 import { useApp } from '@/state/AppState';
-import { ACCEPT_ATTR, readTextFile, CHANNEL_LABELS, CHANNEL_ORDER, columnStats, defaultUnitFor, MAX_FILE_BYTES, UNIT_OPTIONS, type ColumnMapping } from '@/lib/telemetry-parser';
+import { readTextFile, sniffBinary, CHANNEL_LABELS, CHANNEL_ORDER, columnStats, defaultUnitFor, MAX_FILE_BYTES, UNIT_OPTIONS, type ColumnMapping } from '@/lib/telemetry-parser';
 import { parseFile, processTable, type ParseResult, type ProcessResult } from '@/lib/analysis/worker-client';
 import { buildSession, type LapDetectionResult } from '@/lib/analysis/pipeline';
 import { fastestLap } from '@/lib/telemetry-metrics';
@@ -40,6 +40,7 @@ export default function NewAnalysis() {
   const [refLap, setRefLap] = useState<number | null>(null);
   const [result, setResult] = useState<Session | null>(null);
   const [drag, setDrag] = useState(false);
+  const [pasted, setPasted] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -76,6 +77,11 @@ export default function NewAnalysis() {
     }
     if (f.size === 0) {
       setError('O arquivo está vazio.');
+      return;
+    }
+    const binary = await sniffBinary(f);
+    if (binary) {
+      setError(binary);
       return;
     }
     try {
@@ -218,7 +224,15 @@ export default function NewAnalysis() {
                 <FlaskConical className="h-4 w-4" /> Usar arquivo de exemplo (sintético)
               </button>
             </div>
-            <input ref={inputRef} type="file" accept={ACCEPT_ATTR} className="hidden" onChange={(e) => { onFile(e.target.files?.[0] ?? undefined); e.target.value = ''; }} />
+            <input ref={inputRef} type="file" className="hidden" onChange={(e) => { onFile(e.target.files?.[0] ?? undefined); e.target.value = ''; }} />
+          </div>
+          <div className="mt-5 rounded-lg border border-ink-600 p-4">
+            <label htmlFor="paste-csv" className="font-semibold">Não consegue selecionar o arquivo?</label>
+            <p className="mt-1 text-sm text-fg-muted">Abra o CSV em qualquer editor de texto, copie tudo e cole aqui. Funciona inclusive dentro de aplicativos que bloqueiam o envio de arquivos.</p>
+            <textarea id="paste-csv" rows={5} className="input mt-3 font-mono text-xs" placeholder={'Time;Speed;Latitude;Longitude\n0,00;45,2;-23,70123;-46,69876\n…'} value={pasted} onChange={(e) => setPasted(e.target.value)} />
+            <button className="btn-secondary mt-2" disabled={!pasted.trim() || !!busy} onClick={() => loadText('dados-colados.csv', pasted.length, pasted)}>
+              Analisar texto colado
+            </button>
           </div>
           <div className="mt-5 grid gap-3 text-sm text-fg-muted md:grid-cols-3">
             <div className="rounded-lg border border-ink-600 p-4">
