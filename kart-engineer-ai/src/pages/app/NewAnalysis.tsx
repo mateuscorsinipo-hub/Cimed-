@@ -6,7 +6,7 @@ import { LapDetectionPanel, LapsTable } from '@/components/app/LapDetectionPanel
 import { TrackMap } from '@/components/charts/TrackMap';
 import { cn, Field, KindTag, Notice, Panel, Spinner, useUi } from '@/components/ui';
 import { useApp } from '@/state/AppState';
-import { ACCEPT_ATTR, CHANNEL_LABELS, CHANNEL_ORDER, columnStats, defaultUnitFor, MAX_FILE_BYTES, UNIT_OPTIONS, type ColumnMapping } from '@/lib/telemetry-parser';
+import { ACCEPT_ATTR, readTextFile, CHANNEL_LABELS, CHANNEL_ORDER, columnStats, defaultUnitFor, MAX_FILE_BYTES, UNIT_OPTIONS, type ColumnMapping } from '@/lib/telemetry-parser';
 import { parseFile, processTable, type ParseResult, type ProcessResult } from '@/lib/analysis/worker-client';
 import { buildSession, type LapDetectionResult } from '@/lib/analysis/pipeline';
 import { fastestLap } from '@/lib/telemetry-metrics';
@@ -79,7 +79,7 @@ export default function NewAnalysis() {
       return;
     }
     try {
-      await loadText(f.name, f.size, await f.text());
+      await loadText(f.name, f.size, await readTextFile(f));
     } catch (e) {
       setError(`Não foi possível ler o arquivo: ${(e as Error).message}`);
     }
@@ -218,7 +218,7 @@ export default function NewAnalysis() {
                 <FlaskConical className="h-4 w-4" /> Usar arquivo de exemplo (sintético)
               </button>
             </div>
-            <input ref={inputRef} type="file" accept={ACCEPT_ATTR} className="hidden" onChange={(e) => onFile(e.target.files?.[0] ?? undefined)} />
+            <input ref={inputRef} type="file" accept={ACCEPT_ATTR} className="hidden" onChange={(e) => { onFile(e.target.files?.[0] ?? undefined); e.target.value = ''; }} />
           </div>
           <div className="mt-5 grid gap-3 text-sm text-fg-muted md:grid-cols-3">
             <div className="rounded-lg border border-ink-600 p-4">

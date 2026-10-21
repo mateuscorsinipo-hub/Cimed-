@@ -121,3 +121,29 @@ describe('parseGpx', () => {
     expect(() => parseGpx('hello')).toThrow(ParseError);
   });
 });
+
+describe('codificação e formatos de número', () => {
+  it('lê CSV em UTF-16 (Excel "Texto Unicode") e Windows-1252', async () => {
+    const { readTextFile } = await import('../telemetry-parser');
+    const text = 'Tempo;Velocidade\n0;10\n';
+    const u16 = new Uint8Array(2 + text.length * 2);
+    u16[0] = 0xff;
+    u16[1] = 0xfe;
+    for (let i = 0; i < text.length; i++) u16[2 + i * 2] = text.charCodeAt(i);
+    expect(await readTextFile(new Blob([u16]))).toBe(text);
+    const latin = new Uint8Array([0x44, 0x69, 0x73, 0x74, 0xe2, 0x6e, 0x63, 0x69, 0x61]); // "Distância" em 1252
+    expect(await readTextFile(new Blob([latin]))).toBe('Distância');
+  });
+
+  it('aceita milhar com ponto quando o decimal é vírgula', async () => {
+    const { parseNumber } = await import('../telemetry-parser');
+    expect(parseNumber('1.234,5', true)).toBeCloseTo(1234.5);
+    expect(parseNumber('12,5', true)).toBeCloseTo(12.5);
+  });
+
+  it('aceita CSV com BOM, CRLF e separador por tabulação', () => {
+    const t = parseCsv('﻿Time\tSpeed\r\n0\t10\r\n0.1\t11\r\n0.2\t12\r\n');
+    expect(t.headers).toEqual(['Time', 'Speed']);
+    expect(t.rows).toHaveLength(3);
+  });
+});

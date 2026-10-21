@@ -18,10 +18,12 @@ export interface ProcessResult {
 }
 
 let worker: Worker | null = null;
+let workerBroken = false;
 let seq = 0;
 const pending = new Map<number, { resolve: (v: unknown) => void; reject: (e: Error) => void }>();
 
 function getWorker(): Worker | null {
+  if (workerBroken || typeof Worker === 'undefined') return null;
   if (worker) return worker;
   try {
     worker = new Worker(new URL('../../workers/analysis.worker.ts', import.meta.url), { type: 'module' });
@@ -33,9 +35,13 @@ function getWorker(): Worker | null {
       if (r.ok) p.resolve(r.result);
       else p.reject(new Error(r.error));
     };
-    worker.onerror = (e) => {
-      for (const p of pending.values()) p.reject(new Error(e.message || 'Falha no processamento em segundo plano.'));
+    worker.onerror = () => {
+      // Worker indisponível (ex.: ambiente embutido que bloqueia workers de módulo):
+      // as chamadas pendentes passam a rodar na thread principal.
+      workerBroken = true;
+      for (const p of pending.values()) p.reject(new Error('no-worker'));
       pending.clear();
+      worker?.terminate();
       worker = null;
     };
     return worker;

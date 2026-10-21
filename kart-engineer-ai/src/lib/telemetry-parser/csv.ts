@@ -81,7 +81,11 @@ export function parseNumber(s: string, decimalComma: boolean): number {
   if (s === undefined || s === null) return NaN;
   const t = s.trim();
   if (!t) return NaN;
-  if (decimalComma) return Number(t.replace(',', '.'));
+  if (decimalComma) {
+    // "1.234,56" (milhar com ponto) e "12,5" (decimal com vírgula).
+    const v = /^[-+]?\d{1,3}(\.\d{3})+(,\d+)?$/.test(t) ? t.replace(/\./g, '') : t;
+    return Number(v.replace(',', '.'));
+  }
   return NUM_DOT.test(t) ? Number(t) : NaN;
 }
 
