@@ -147,3 +147,24 @@ describe('codificação e formatos de número', () => {
     expect(t.rows).toHaveLength(3);
   });
 });
+
+describe('arquivos binários', () => {
+  it('reconhece formato nativo e explica como exportar', async () => {
+    const { sniffBinary } = await import('../telemetry-parser');
+    const bytes = new Uint8Array(500).map((_, i) => (i % 3 === 0 ? 0 : (i * 37) % 256));
+    const msg = await sniffBinary(new Blob([bytes]), 'sessao.xrk');
+    expect(msg).toMatch(/AiM/);
+    expect(msg).toMatch(/Exportar/);
+    expect(await sniffBinary(new Blob(['time,speed\n0,1\n']), 'a.csv')).toBeNull();
+  });
+
+  it('lê UTF-16 big-endian sem BOM e remove bytes nulos soltos', async () => {
+    const { readTextFile, sniffBinary } = await import('../telemetry-parser');
+    const text = 'time;speed\n0;10\n0.1;11\n';
+    const be = new Uint8Array(text.length * 2);
+    for (let i = 0; i < text.length; i++) be[i * 2 + 1] = text.charCodeAt(i);
+    expect(await sniffBinary(new Blob([be]), 'x.csv')).toBeNull();
+    expect(await readTextFile(new Blob([be]))).toBe(text);
+    expect(await readTextFile(new Blob(['a,b\n1,2\n\u0000\u0000']))).toBe('a,b\n1,2\n');
+  });
+});
